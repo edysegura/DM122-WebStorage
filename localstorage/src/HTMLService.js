@@ -1,6 +1,7 @@
 export default class HTMLService {
   #table = null;
   #tbody = null;
+  #noSubscriberInfo = null;
 
   constructor(subscriberService) {
     this.subscriberService = subscriberService;
@@ -17,6 +18,7 @@ export default class HTMLService {
     }
     this.#table = table;
     this.#tbody = table.tBodies[0];
+    this.#noSubscriberInfo = document.getElementById("no-subscriber");
   }
 
   async fetchSubscribers() {
@@ -53,10 +55,12 @@ export default class HTMLService {
       <tr>
         <td>${new Date(subscriber.createdDate).toLocaleString("pt-BR")}</td>
         <td>${subscriber.email}</td>
-        <td
-          class="delete-sub"
-          data-email="${subscriber.email}">
-            🗑️
+        <td>
+          <span
+            data-email="${subscriber.email}"
+            class="delete-sub">
+              🗑️
+            </span>
         </td>
       </tr>
     `;
@@ -73,26 +77,33 @@ export default class HTMLService {
   toggleTable() {
     const table = this.#table;
     const tbody = this.#tbody;
+    const noSubInfo = this.#noSubscriberInfo;
     const hasRows = tbody.rows.length;
     if (!hasRows) {
       table.hidden = true;
+      noSubInfo.hidden = false;
       return;
     }
     table.hidden = false;
+    noSubInfo.hidden = true;
   }
 
   // TODO: refactor needed
   setDeleteBehavior() {
-    const bins = document.querySelectorAll(".delete-sub");
-    bins.forEach((bin) => {
-      bin.onclick = async () => {
-        // TODO: implement a dialog to confirm the deletion
-        const isDeleted = await this.subscriberService.delete(
-          bin.dataset.email
-        );
-        if (isDeleted) bin.parentNode.remove();
-        this.toggleTable();
-      };
+    const deleteIcons = document.querySelectorAll(".delete-sub");
+    deleteIcons.forEach((deleteIcon) => {
+      deleteIcon.onclick = () => this.confirmDeletion(deleteIcon);
     });
+  }
+
+  async confirmDeletion(deleteIcon) {
+    // TODO: implement a dialog to confirm the deletion
+    const isDeleted = await this.subscriberService.delete(
+      deleteIcon.dataset.email
+    );
+    if (isDeleted) {
+      deleteIcon.closest("tr")?.remove();
+      this.toggleTable();
+    }
   }
 }
